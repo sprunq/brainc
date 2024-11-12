@@ -6,41 +6,42 @@ use itertools::Itertools;
 pub struct CombineIncrements;
 
 impl OptimizationPass for CombineIncrements {
-    fn optimize(&self, nodes: Vec<Instruction>) -> Vec<Instruction> {
+    fn optimize(
+        &self,
+        nodes: impl IntoIterator<Item = Instruction>,
+    ) -> impl Iterator<Item = Instruction> {
         nodes
             .into_iter()
+            .map_loops(Self)
             .coalesce(|prev, current| match (prev, current) {
                 (Add { value: a }, Add { value: b }) => Ok(Add { value: a + b }),
                 (Move { value: a }, Move { value: b }) => Ok(Move { value: a + b }),
                 (a, b) => Err((a, b)),
             })
-            .map_loops(Self)
-            .collect()
     }
 }
 
 pub struct ReplaceSet;
 
 impl OptimizationPass for ReplaceSet {
-    fn optimize(&self, nodes: Vec<Instruction>) -> Vec<Instruction> {
-        nodes
-            .into_iter()
-            .map(|instr| {
-                if let Loop { ref nodes } = instr {
-                    if nodes.len() == 1 {
-                        let inner = &nodes[0];
-                        if let Add { value } = inner {
-                            let value = value.0;
-                            if value == -1 || value == 1 {
-                                return Set { value: 0 };
-                            }
+    fn optimize(
+        &self,
+        nodes: impl IntoIterator<Item = Instruction>,
+    ) -> impl Iterator<Item = Instruction> {
+        nodes.into_iter().map_loops(Self).map(|instr| {
+            if let Loop { ref nodes } = instr {
+                if nodes.len() == 1 {
+                    let inner = &nodes[0];
+                    if let Add { value } = inner {
+                        let value = value.0;
+                        if value == -1 || value == 1 {
+                            return Set { value: 0 };
                         }
                     }
                 }
-                instr
-            })
-            .map_loops(Self)
-            .collect()
+            }
+            instr
+        })
     }
 }
 
@@ -50,9 +51,13 @@ impl OptimizationPass for ReplaceSet {
 pub struct CombineSets;
 
 impl OptimizationPass for CombineSets {
-    fn optimize(&self, nodes: Vec<Instruction>) -> Vec<Instruction> {
+    fn optimize(
+        &self,
+        nodes: impl IntoIterator<Item = Instruction>,
+    ) -> impl Iterator<Item = Instruction> {
         nodes
             .into_iter()
+            .map_loops(Self)
             .coalesce(|prev, current| match (prev, current) {
                 (Set { value: a }, Set { value: b }) => Ok(Set { value: a + b }),
                 (Set { value: a }, Add { value: b }) => Ok(Set {
@@ -61,7 +66,5 @@ impl OptimizationPass for CombineSets {
                 (Add { value: _ }, Set { value: b }) => Ok(Set { value: b }),
                 (a, b) => Err((a, b)),
             })
-            .map_loops(Self)
-            .collect()
     }
 }

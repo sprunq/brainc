@@ -3,7 +3,8 @@ use execution::{
     interpreter::Interpreter,
     native::{codegen::CodeGeneration, state::State},
 };
-use optimize::{peephole::*, OptimizationPass};
+use itertools::Itertools;
+use optimize::{peephole::*, OptimizeExt};
 pub mod execution;
 pub mod optimize;
 pub mod syntax;
@@ -17,7 +18,7 @@ macro_rules! time {
         let start = std::time::Instant::now();
         let result = $e;
         let elapsed = start.elapsed();
-        std::io::stdout().flush().unwrap();
+        std::io::stdout().flush()?;
         println!("{}: {:?}", $msg, elapsed);
         result
     }};
@@ -52,25 +53,24 @@ enum Mode {
     Interpret,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    let s = std::fs::read_to_string(&cli.path).unwrap();
-    let mut nodes = time!("Parse", syntax::parse(&s).unwrap());
+    let s = std::fs::read_to_string(&cli.path)?;
+    let instructions = syntax::parse(&s)?;
 
-    if cli.optimize {
-        nodes = time!(
-            "OptimizeCombineIncrements",
-            CombineIncrements.optimize(nodes)
-        );
-        nodes = time!("OptimizeReplaceSet", ReplaceSet.optimize(nodes));
-        nodes = time!("OptimizeCombineSets", CombineSets.optimize(nodes));
-    }
-
-    if true {
-        let mut file = std::fs::File::create("optimized.txt").unwrap();
-        writeln!(file, "{}", syntax::indented(&nodes, 0)).unwrap();
-    }
+    let nodes = if cli.optimize {
+        time!("Optimization finished in", {
+            instructions
+                .into_iter()
+                .optimize(&CombineIncrements)
+                .optimize(&ReplaceSet)
+                .optimize(&CombineSets)
+                .collect_vec()
+        })
+    } else {
+        instructions
+    };
 
     match cli.mode {
         Mode::Interpret => {
@@ -90,7 +90,7 @@ fn main() {
             }
 
             let codegen = CodeGeneration::x86_x64();
-            let executor = codegen.generate(&nodes);
+            let executor = codegen.generate(nodes);
 
             if cli.dump_binary {
                 executor.dump_binary("out.bin");
@@ -106,5 +106,7 @@ fn main() {
                 eprintln!("Error: {:?}", result);
             }
         }
-    }
+    };
+
+    Ok(())
 }

@@ -12,7 +12,7 @@ pub enum Instruction {
     Set { value: u8 },
 }
 
-pub fn parse(str: &str) -> Result<Vec<Instruction>, ()> {
+pub fn parse(str: &str) -> Result<Vec<Instruction>, &str> {
     let mut nodes = Vec::new();
     let mut stack = Vec::new();
 
@@ -48,7 +48,7 @@ pub fn parse(str: &str) -> Result<Vec<Instruction>, ()> {
                         parent.push(Instruction::Loop { nodes });
                         nodes = parent;
                     }
-                    None => panic!("No matching ["),
+                    None => return Err("No matching ["),
                 };
             }
             _ => {

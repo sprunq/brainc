@@ -23,11 +23,11 @@ impl<B> CodeGeneration<B>
 where
     B: NativeCodeGenBackend,
 {
-    pub fn generate(mut self, instrs: &[Instruction]) -> NativeExecutor {
+    pub fn generate(mut self, instrs: impl IntoIterator<Item = Instruction>) -> NativeExecutor {
         let code_start = self.codegen.generate_prolouge(&mut self.ops);
 
         for instr in instrs {
-            self.codegen.generate_instruction(&mut self.ops, instr);
+            self.codegen.generate_instruction(&mut self.ops, &instr);
         }
 
         self.codegen.generate_epilouge(&mut self.ops);
