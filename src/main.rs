@@ -8,10 +8,7 @@ use optimize::{peephole::*, OptimizeExt};
 pub mod execution;
 pub mod optimize;
 pub mod syntax;
-use std::{
-    io::{BufWriter, Write},
-    path::PathBuf,
-};
+use std::{io::Write, path::PathBuf};
 
 macro_rules! time {
     ( $msg:expr, $e:expr) => {{
