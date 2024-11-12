@@ -21,7 +21,7 @@ impl NativeExecutor {
             tape_end: *mut u8,
         ) -> u8 = unsafe { mem::transmute(self.code.ptr(self.code_start)) };
 
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
         let native_code: extern "sysv64" fn(
             state: *mut State,
             tape_start: *mut u8,

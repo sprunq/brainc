@@ -78,7 +78,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "Execution finished in",
                 Interpreter::new(
                     Box::new(std::io::stdin()),
-                    Box::new(BufWriter::new(std::io::stdout())),
+                    Box::new(std::io::stdout()),
                     cli.tape_size
                 )
                 .interpret(&nodes)
@@ -98,7 +98,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let mut state = State::new(
                 Box::new(std::io::stdin()),
-                Box::new(BufWriter::new(std::io::stdout())),
+                Box::new(std::io::stdout()),
                 cli.tape_size,
             );
             let result = time!("Execution finished in", executor.run(&mut state));
